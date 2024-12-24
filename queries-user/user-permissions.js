@@ -1,21 +1,9 @@
-const connection = require("../db.js");
 const readline = require("readline");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-
-function selectUserID() {
-  connection.query("SELECT users.id,users.role FROM users", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT USERS:" + err.stack);
-    }
-    console.log("USERS----------------------");
-    console.log(results);
-    permissions();
-  });
-}
 
 function permissions() {
   connection.query("SELECT * FROM user_permissions", (err, results) => {
@@ -108,4 +96,6 @@ function updatePermissions(id) {
   });
 }
 
-selectUserID();
+module.exports = {
+  permissions,
+};

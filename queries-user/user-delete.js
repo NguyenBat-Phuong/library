@@ -1,21 +1,9 @@
-const connection = require("../db.js");
 const readline = require("readline");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-
-function selectUsers() {
-  connection.query("SELECT * FROM users", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT USERS:" + err.stack);
-    }
-    console.log("BOOKS----------------------");
-    console.log(results);
-    deleteUser()
-  });
-}
 
 async function deleteUser() {
   // Kiem tra ID
@@ -60,9 +48,6 @@ async function deleteUser() {
   });
 }
 
-selectUsers();
-
 module.exports = {
   deleteUser,
-  selectUsers,
 };

@@ -1,4 +1,4 @@
-const connection = require("../db.js");
+const connection = require("../connect/db.js");
 
 function selectStatistics() {
   const sqlQuery = `

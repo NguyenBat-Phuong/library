@@ -1,22 +1,10 @@
 const { title } = require("process");
-const connection = require("../db.js");
 const readline = require("readline");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-
-function selectUsers() {
-  connection.query("SELECT * FROM users", (err, results) => {
-    if (err) {
-      console.error("ERROR UPDATE USERS:" + err.stack);
-    }
-    console.log("USERS----------------------");
-    console.log(results);
-    whereUserID();
-  });
-}
 
 async function whereUserID() {
   rl.question("\n nhap ID muon sua: ", (id) => {
@@ -72,6 +60,7 @@ async function updataUser(id) {
               }
               console.log("\n" + _results.affectedRows > 0);
               rl.close();
+              selectUsers();
             }
           );
         });
@@ -79,4 +68,7 @@ async function updataUser(id) {
     });
   });
 }
-selectUsers();
+
+module.exports = {
+  whereUserID,
+};

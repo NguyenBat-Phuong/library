@@ -1,5 +1,4 @@
 const { title } = require("process");
-const connection = require("../db.js");
 const readline = require("readline");
 
 const rl = readline.createInterface({
@@ -78,6 +77,7 @@ async function updataBook(id) {
                 }
                 console.log(_results.affectedRows > 0);
                 rl.close();
+                selectbooks();
               }
             );
           });
@@ -85,6 +85,4 @@ async function updataBook(id) {
       });
     });
   });
-  selectbooks();
 }
-selectbooks();

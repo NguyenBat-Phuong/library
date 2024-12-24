@@ -1,75 +1,60 @@
-const connection = require("../db.js");
-const readline = require("readline");
+const connection = require("../connect/db.js");
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const question = async (promptText) => {
+  return require("@inquirer/prompts").input({
+    message: promptText,
+  });
+};
 
-function selectBooks() {
-  connection.query("SELECT * FROM books", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT BOOKS:" + err.stack);
-    }
-    console.log("BOOKS----------------------");
-    console.log(results);
-    deleteBook();
+function queryAsync(sql, params) {
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (err, results) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
   });
 }
 
 async function deleteBook() {
-  // Kiem tra ID
-  rl.question("\nNhập ID sách muốn xóa: ", (id) => {
+  try {
+    const id = await question("Nhập ID sách muốn xóa:");
+
     if (!id || isNaN(id) || id <= 0) {
       console.log("ID không hợp lệ. Vui lòng nhập một số nguyên dương.");
-      rl.close();
       return;
     }
-    connection.query(
-      "DELETE FROM books WHERE id = ? AND (LOWER(status) = 'available' OR LOWER(status) = 'damaged')",
-      [id],
-      async (err, results) => {
-        if (err) {
-          console.error("Lỗi khi kiểm tra điều kiện: " + err.stack);
-        }
-        connection.query(
-          "DELETE FROM statistics WHERE book_id = ?",
-          [id],
-          async (err, results) => {
-            connection.query(
-              "DELETE FROM loans WHERE book_id = ?",
-              [id],
-              async (err, results) => {
-                if (err) {
-                  console.error("Lỗi khi xóa sách: " + err.stack);
-                  return;
-                }
 
-                if (results.affectedRows > 0) {
-                  console.log(`Đã xóa sách với ID ${id} thành công.`);
-                } else {
-                  console.log(
-                    `Không tìm thấy sách với ID ${id} hoặc sách không có trạng thái 'available' hoặc 'damaged'.`
-                  );
-                }
+    // Xóa sách với điều kiện trạng thái
+    const deleteBookQuery =
+      "DELETE FROM books WHERE id = ? AND (LOWER(status) = 'available' OR LOWER(status) = 'damaged')";
+    const bookResults = await queryAsync(deleteBookQuery, [id]);
 
-                try {
-                  selectBooks();
-                } catch (error) {
-                  console.error("Lỗi khi gọi selectBooks():", error);
-                }
-              }
-            );
-          }
-        );
-      }
-    );
-  });
+    if (bookResults.affectedRows === 0) {
+      console.log(
+        `Không tìm thấy sách với ID ${id} hoặc sách không có trạng thái 'available' hoặc 'damaged'.`
+      );
+      return;
+    }
+
+    // Xóa bản ghi trong bảng statistics
+    const deleteStatisticsQuery = "DELETE FROM statistics WHERE book_id = ?";
+    const statisticsResults = await queryAsync(deleteStatisticsQuery, [id]);
+
+    // Xóa bản ghi trong bảng loans
+    const deleteLoansQuery = "DELETE FROM loans WHERE book_id = ?";
+    const loansResults = await queryAsync(deleteLoansQuery, [id]);
+
+    console.log(`Đã xóa sách với ID ${id} thành công.`);
+  } catch (err) {
+    console.error("Lỗi khi xóa sách: " + err.stack);
+  } finally {
+    connection.end();
+  }
 }
-
-selectBooks();
 
 module.exports = {
   deleteBook,
-  selectBooks,
 };

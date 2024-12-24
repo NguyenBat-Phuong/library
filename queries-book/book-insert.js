@@ -1,38 +1,12 @@
 const readline = require("readline");
-const connection = require("../db.js");
+const connection = require("../connect/db.js");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-function selectbooks() {
-  connection.query("SELECT * FROM books", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT BOOKS:" + err.stack);
-    }
-    console.log("BOOKS----------------------");
-    console.log(results);
-    bookInput();
-  });
-}
-async function deleteBooks() {
-  connection.query("DROP TABLE IF EXISTS books", async (err) => {
-    if (err) {
-      console.error("ERROR DROP TABLE BOOKS: " + err.stack);
-      return;
-    }
-    console.log("Table 'books' deleted successfully.");
-
-    try {
-      await bookInput(); // Đảm bảo chạy sau khi bảng bị xóa
-    } catch (error) {
-      console.error("Error calling bookInput():", error);
-    }
-  });
-}
-
-async function bookInput() {
+async function bookInsert() {
   rl.question("\nTitle: ", (title) => {
     rl.question("Author: ", (author) => {
       rl.question("Category: ", (category) => {
@@ -40,7 +14,7 @@ async function bookInput() {
           rl.question("Status: ", async (status) => {
             if (!title) {
               console.log("The title cannot be left blank");
-              bookInput();
+              bookInsert();
               return;
             }
 
@@ -61,7 +35,7 @@ async function bookInput() {
                   return;
                 }
                 console.log("NEW USER:" + results);
-                connection.end;
+                connection.end();
               });
           });
         });
@@ -69,10 +43,6 @@ async function bookInput() {
     });
   });
 }
-
-selectbooks();
-
 module.exports = {
-  bookInput,
-  selectbooks,
+  bookInsert,
 };

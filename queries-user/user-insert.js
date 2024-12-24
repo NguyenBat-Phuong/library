@@ -1,23 +1,10 @@
 const readline = require("readline");
-const connection = require("../db.js");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-//SELECT Ket qua
-function selectUser() {
-  connection.query("SELECT * FROM users", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT USERS:" + err.stack);
-    }
-    console.log("USERS----------------------");
-    console.log(results);
-
-    userInput();
-  });
-}
 async function userInput() {
   rl.question("\nName: ", async (username) => {
     rl.question("Password: ", async (password) => {
@@ -44,16 +31,12 @@ async function userInput() {
             }
             console.log("NEW USER:" + results);
           });
-
-          selectUser();
         });
       });
     });
   });
 }
-selectUser();
 
 module.exports = {
   userInput,
-  selectUser,
 };
