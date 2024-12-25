@@ -1,11 +1,11 @@
 const connection = require("../connect/db.js");
+const inquirer = require("@inquirer/prompts");
 
-const question = async (promptText) => {
-  return require("@inquirer/prompts").input({
+async function question(promptText) {
+  return inquirer.input({
     message: promptText,
   });
-};
-
+}
 function queryAsync(sql, params) {
   return new Promise((resolve, reject) => {
     connection.query(sql, params, (err, results) => {
@@ -27,7 +27,10 @@ async function deleteBook() {
       return;
     }
 
-    // Xóa sách với điều kiện trạng thái
+    // Bắt đầu giao dịch
+    await queryAsync("START TRANSACTION");
+
+    // Xóa sách với điều kiện
     const deleteBookQuery =
       "DELETE FROM books WHERE id = ? AND (LOWER(status) = 'available' OR LOWER(status) = 'damaged')";
     const bookResults = await queryAsync(deleteBookQuery, [id]);
@@ -36,6 +39,7 @@ async function deleteBook() {
       console.log(
         `Không tìm thấy sách với ID ${id} hoặc sách không có trạng thái 'available' hoặc 'damaged'.`
       );
+      await queryAsync("ROLLBACK");
       return;
     }
 
@@ -47,9 +51,16 @@ async function deleteBook() {
     const deleteLoansQuery = "DELETE FROM loans WHERE book_id = ?";
     const loansResults = await queryAsync(deleteLoansQuery, [id]);
 
+    // Cam kết giao dịch
+    await queryAsync("COMMIT");
+
     console.log(`Đã xóa sách với ID ${id} thành công.`);
+    console.log(`Bản ghi xóa từ bảng statistics: ${statisticsResults.affectedRows}`);
+    console.log(`Bản ghi xóa từ bảng loans: ${loansResults.affectedRows}`);
   } catch (err) {
-    console.error("Lỗi khi xóa sách: " + err.stack);
+    // Hoàn tác giao dịch khi xảy ra lỗi
+    await queryAsync("ROLLBACK");
+    console.error("Lỗi khi xóa sách: " + err.message);
   } finally {
     connection.end();
   }

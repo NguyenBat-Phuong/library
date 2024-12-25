@@ -1,40 +1,39 @@
-const readline = require("readline");
+const inquirer = require("@inquirer/prompts");
+const connection = require("../connect/db.js");
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+async function question(promptText) {
+  return inquirer.input({
+    message: promptText,
+  });
+}
 
 async function userInput() {
-  rl.question("\nName: ", async (username) => {
-    rl.question("Password: ", async (password) => {
-      rl.question("email: ", async (email) => {
-        rl.question("role: ", async (role) => {
-          if (!username || !password || !email) {
-            console.log("Cannot be left blank");
-            userInput();
-            return;
-          }
+  try {
+    const username = await question("\nName: ");
+    const password = await question("Password: ");
+    const email = await question("Email: ");
+    let role = await question("Role: ");
 
-          if (role !== "admin") {
-            role = "user";
-          }
+    if (!username || !password || !email) {
+      console.log("Username, password, and email cannot be left blank.");
+      return;
+    }
 
-          //INSERT Vao sql
-          const query =
-            "INSERT INTO users(username,password,email,role) VALUES (?,?,?,?)";
-          const values = [username, password, email, role];
-          await connection.promise().execute(query, values, (err, results) => {
-            if (err) {
-              console.error("ERROR INSERT USER VAO SQL: " + err.stack);
-              return;
-            }
-            console.log("NEW USER:" + results);
-          });
-        });
-      });
-    });
-  });
+    if (role !== "admin") {
+      role = "user"; // Default role
+    }
+
+    // INSERT SQL
+    const query = "INSERT INTO users(username, password, email, role) VALUES (?, ?, ?, ?)";
+    const values = [username, password, email, role];
+    const [results] = await connection.promise().execute(query, values);
+
+    console.log("New user inserted successfully:", results);
+  } catch (err) {
+    console.error("Error inserting user:", err.message);
+  } finally {
+    connection.end();
+  }
 }
 
 module.exports = {

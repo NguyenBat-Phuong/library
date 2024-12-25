@@ -1,24 +1,15 @@
 const connection = require("../connect/db.js");
 
-function selectBooks() {
-  connection.query("SELECT * FROM books", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT BOOKS: " + err.stack);
-      return;
-    }
+async function selectUsers() {
+  try {
+    const [results] = await connection.promise().query("SELECT * FROM books");
     console.log("BOOKS----------------------");
     console.log(results);
-
-    // Đóng kết nối
-    connection.end((closeErr) => {
-      if (closeErr) {
-        console.error("ERROR CLOSING CONNECTION: " + closeErr.stack);
-      } else {
-        console.log("Connection closed successfully.");
-      }
-    });
-  });
+  } catch (err) {
+    console.error("ERROR UPDATE BOOKS:" + err.stack);
+  }
 }
+
 module.exports = {
   selectBooks,
 };

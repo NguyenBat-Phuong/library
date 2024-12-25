@@ -1,99 +1,83 @@
-const readline = require("readline");
+const connection = require("../connect/db.js");
+const inquirer = require("@inquirer/prompts");
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-function permissions() {
-  connection.query("SELECT * FROM user_permissions", (err, results) => {
-    if (err) {
-      console.error("ERROR SELECT user_permissions:" + err.stack);
-    }
+async function permissions() {
+  try {
+    const [results] = await connection.promise().query("SELECT * FROM user_permissions");
     console.log("USERS----------------------");
     console.log(results);
-    checkPermissions();
-  });
+    await checkPermissions();
+  } catch (err) {
+    console.error("ERROR SELECT user_permissions:" + err.stack);
+  }
 }
 
-function checkPermissions() {
-  rl.question("\n Chinh sua quyen voi ID: ", (id) => {
-    if (!id || isNaN(id) || id <= 0) {
-      console.log("ID lor");
-      rl.close();
+async function checkPermissions() {
+  const { id } = await inquirer.input({
+    message: "\nChỉnh sửa quyền với ID: ",
+  });
+
+  if (!id || isNaN(id) || id <= 0) {
+    console.log("ID không hợp lệ");
+    return;
+  }
+
+  try {
+    const [results] = await connection.promise().query(
+      "SELECT users.id, users.role, user_permissions.id FROM user_permissions INNER JOIN users ON user_permissions.user_id = users.id WHERE users.id = ?",
+      [id]
+    );
+
+    if (results.length === 0) {
+      console.log(`Không tìm thấy với ID ${id}`);
       return;
     }
-    connection.query(
-      "SELECT users.id, users.role, user_permissions.id FROM user_permissions INNER JOIN users ON user_permissions.user_id = users.id WHERE users.id = ?",
-      [id],
-      (err, results) => {
-        if (err) {
-          console.error("Lỗi khi tìm kiếm tại ID vừa nhập " + id + err.stack);
-        }
-        if (results.length === 0) {
-          console.log(`Không tìm thấy với ID ${id}`);
-          rl.close();
-          return;
-        }
-        console.log(results);
-        updatePermissions(id);
-      }
-    );
-  });
+
+    console.log(results);
+    await updatePermissions(id);
+  } catch (err) {
+    console.error("Lỗi khi tìm kiếm tại ID vừa nhập " + id + err.stack);
+  }
 }
 
-function updatePermissions(id) {
-  rl.question("\nNhập can_borrow_books: ", (_can_borrow_books) => {
-    _can_borrow_books = parseInt(_can_borrow_books);
-    if (_can_borrow_books !== 1) {
-      _can_borrow_books = 0;
-    }
-
-    rl.question("\nNhập can_manage_books: ", (_can_manage_books) => {
-      _can_manage_books = parseInt(_can_manage_books);
-      if (_can_manage_books !== 1) {
-        _can_manage_books = 0;
-      }
-
-      rl.question("\nNhập can_manage_users: ", (_can_manage_users) => {
-        _can_manage_users = parseInt(_can_manage_users);
-        if (_can_manage_users !== 1) {
-          _can_manage_users = 0;
-        }
-
-        // Kiểm tra giá trị có hợp lệ không (0 hoặc 1)
-        if (
-          isNaN(_can_borrow_books) ||
-          isNaN(_can_manage_books) ||
-          isNaN(_can_manage_users)
-        ) {
-          console.log("Các giá trị phải là 0 hoặc 1.");
-          rl.close();
-          return;
-        }
-
-        // Thực hiện câu lệnh UPDATE với điều kiện WHERE để cập nhật theo id người dùng
-        connection.query(
-          "UPDATE user_permissions SET can_borrow_books = ?, can_manage_books = ?, can_manage_users = ? WHERE user_id = ?",
-          [_can_borrow_books, _can_manage_books, _can_manage_users, id],
-          (err, results) => {
-            if (err) {
-              console.error("Lỗi khi cập nhật quyền: " + err.stack);
-              rl.close();
-              return;
-            }
-
-            if (results.affectedRows > 0) {
-              console.log("Cập nhật thành công.");
-            } else {
-              console.log("Không tìm thấy người dùng với ID " + id);
-            }
-            rl.close();
-          }
-        );
-      });
-    });
+async function updatePermissions(id) {
+  const { can_borrow_books } = await inquirer.input({
+    message: "\nNhập can_borrow_books (0 hoặc 1): ",
   });
+
+  const { can_manage_books } = await inquirer.input({
+    message: "\nNhập can_manage_books (0 hoặc 1): ",
+  });
+
+  const { can_manage_users } = await inquirer.input({
+    message: "\nNhập can_manage_users (0 hoặc 1): ",
+  });
+
+  const values = [
+    parseInt(can_borrow_books) === 1 ? 1 : 0,
+    parseInt(can_manage_books) === 1 ? 1 : 0,
+    parseInt(can_manage_users) === 1 ? 1 : 0,
+  ];
+
+  if (values.some((value) => isNaN(value))) {
+    console.log("Các giá trị phải là 0 hoặc 1.");
+    return;
+  }
+
+  try {
+    const [results] = await connection.promise().query(
+      "UPDATE user_permissions SET can_borrow_books = ?, can_manage_books = ?, can_manage_users = ? WHERE user_id = ?",
+      [...values, id]
+    );
+
+    if (results.affectedRows > 0) {
+      console.log("Cập nhật quyền thành công.");
+    } else {
+      console.log("Không tìm thấy người dùng với ID " + id);
+    }
+  } catch (err) {
+    console.error("Lỗi khi cập nhật quyền: " + err.stack);
+  }
 }
 
 module.exports = {

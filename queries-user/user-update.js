@@ -1,72 +1,66 @@
-const { title } = require("process");
-const readline = require("readline");
+const connection = require("../connect/db.js");
+const inquirer = require("@inquirer/prompts");
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-async function whereUserID() {
-  rl.question("\n nhap ID muon sua: ", (id) => {
-    if (!id || isNaN(id) || id <= 0) {
-      console.log("ID lor");
-      rl.close();
-      return;
-    }
-
-    connection.query(
-      "SELECT * FROM users WHERE id = ?",
-      [id],
-      async (err, results) => {
-        if (err) {
-          console.error(
-            "Lỗi khi tìm kiếm nguoi dung tại ID vừa nhập " + id + err.stack
-          );
-        }
-        if (results.length === 0) {
-          console.log(`Không tìm thấy nguoi dung với ID ${id}`);
-          rl.close();
-          return;
-        }
-        console.log(results);
-        updataUser(id);
-      }
-    );
-  });
+async function closeConnection() {
+  try {
+    await connection.end();
+  } catch (err) {
+    console.error("Lỗi khi đóng kết nối:", err.message);
+  }
 }
 
-async function updataUser(id) {
-  rl.question("\nNhap username: ", (_username) => {
-    rl.question("Nhap password: ", (_password) => {
-      rl.question("Nhap email: ", (_email) => {
-        rl.question("Nhap role: ", (_role) => {
-          if (_role !== "admin") {
-            _role = "user";
-          }
-          connection.query(
-            "UPDATE users SET username = ?, password = ?, email = ?, role = ? WHERE id = ?",
-            [
-              _username.trim(),
-              _password.trim(),
-              _email.trim(),
-              _role.trim(),
-              id.trim(),
-            ],
-            (err, _results) => {
-              if (err) {
-                console.error("Lỗi khi cập nguoi dung: " + err.stack);
-                rl.close();
-                return;
-              }
-              console.log("\n" + _results.affectedRows > 0);
-              rl.close();
-              selectUsers();
-            }
-          );
-        });
-      });
-    });
-  });
+async function whereUserID() {
+  const id = await inquirer.input("\nNhập ID muốn sửa: ");
+  if (!id || isNaN(id) || id <= 0) {
+    console.log("ID không hợp lệ");
+    return false;
+  }
+
+  try {
+    const [results] = await connection
+      .promise()
+      .query("SELECT * FROM users WHERE id = ?", [id]);
+
+    if (results.length === 0) {
+      console.log(`Không tìm thấy người dùng với ID ${id}`);
+      return false;
+    }
+
+    console.log(results);
+    await updateUser(id);
+    return true;
+  } catch (err) {
+    console.error("Lỗi khi tìm kiếm người dùng:", err.message);
+    return false;
+  }
+}
+
+async function updateUser(id) {
+  const _username = await inquirer.input("Nhập username: ");
+  const _password = await inquirer.input("Nhập password: ");
+  const _email = await inquirer.input("Nhập email: ");
+  let _role = await inquirer.input("Nhập role: ");
+
+  if (_role !== "admin") {
+    _role = "user";
+  }
+
+  try {
+    const [results] = await connection
+      .promise()
+      .execute(
+        "UPDATE users SET username = ?, password = ?, email = ?, role = ? WHERE id = ?",
+        [_username.trim(), _password.trim(), _email.trim(), _role.trim(), id]
+      );
+
+    if (results.affectedRows > 0) {
+      console.log("\nCập nhật người dùng thành công!");
+    } else {
+      console.log("\nKhông có sự thay đổi nào.");
+    }
+  } catch (err) {
+    console.error("Lỗi khi cập nhật người dùng: " + err.stack);
+  }
 }
 
 module.exports = {

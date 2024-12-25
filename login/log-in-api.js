@@ -8,11 +8,11 @@ server.post("/login", async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({
       success: false,
-      message: "Vui lòng nhap lai tài khoản và mật khẩu.",
+      message: "Vui lòng nhập lại tài khoản và mật khẩu.",
     });
   }
 
-  //kiểm tra thông tin đăng nhập
+  // Kiểm tra thông tin đăng nhập
   const result = await loginUser(username, password);
 
   if (result.success) {
