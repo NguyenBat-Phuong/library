@@ -6,6 +6,7 @@ async function question(promptText) {
     message: promptText,
   });
 }
+
 function queryAsync(sql, params) {
   return new Promise((resolve, reject) => {
     connection.query(sql, params, (err, results) => {

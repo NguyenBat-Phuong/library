@@ -1,5 +1,6 @@
 const connection = require("../connect/db.js");
 const inquirer = require("@inquirer/prompts");
+const bcrypt = require("bcrypt");
 
 async function closeConnection() {
   try {
@@ -9,11 +10,11 @@ async function closeConnection() {
   }
 }
 
-async function whereUserID() {
-  const id = await inquirer.input("\nNhập ID muốn sửa: ");
+async function updateUser() {
+  const id = await inquirer.input("Nhập ID muốn sửa: ");
   if (!id || isNaN(id) || id <= 0) {
     console.log("ID không hợp lệ");
-    return false;
+    return;
   }
 
   try {
@@ -23,24 +24,32 @@ async function whereUserID() {
 
     if (results.length === 0) {
       console.log(`Không tìm thấy người dùng với ID ${id}`);
-      return false;
+      return;
     }
 
     console.log(results);
-    await updateUser(id);
-    return true;
+    await whereUserID(id);
   } catch (err) {
     console.error("Lỗi khi tìm kiếm người dùng:", err.message);
-    return false;
   }
 }
 
-async function updateUser(id) {
+async function whereUserID(id) {
+  const saltRounds = 10; // Số vòng tính toán cho bcrypt
   const _username = await inquirer.input("Nhập username: ");
   const _password = await inquirer.input("Nhập password: ");
   const _email = await inquirer.input("Nhập email: ");
   let _role = await inquirer.input("Nhập role: ");
 
+  // Kiểm tra dữ liệu nhập vào
+  if (!_username || !_password || !_email) {
+    console.log("Username, password, và email không thể để trống.");
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(_password, saltRounds);
+
+  //Mặc định là user
   if (_role !== "admin") {
     _role = "user";
   }
@@ -50,7 +59,7 @@ async function updateUser(id) {
       .promise()
       .execute(
         "UPDATE users SET username = ?, password = ?, email = ?, role = ? WHERE id = ?",
-        [_username.trim(), _password.trim(), _email.trim(), _role.trim(), id]
+        [_username, hashedPassword, _email, _role, id]
       );
 
     if (results.affectedRows > 0) {
@@ -60,9 +69,11 @@ async function updateUser(id) {
     }
   } catch (err) {
     console.error("Lỗi khi cập nhật người dùng: " + err.stack);
+  } finally {
+    await closeConnection();
   }
 }
 
 module.exports = {
-  whereUserID,
+  updateUser,
 };

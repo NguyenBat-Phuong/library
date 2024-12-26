@@ -14,7 +14,7 @@ async function permissions() {
 
 async function checkPermissions() {
   const { id } = await inquirer.input({
-    message: "\nChỉnh sửa quyền với ID: ",
+    message: "\nChỉnh quyền với ID: ",
   });
 
   if (!id || isNaN(id) || id <= 0) {

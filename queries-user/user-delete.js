@@ -47,7 +47,9 @@ async function deleteUser() {
 
     if (deleteLoansResult.affectedRows > 0) {
       console.log(`Đã xóa người dùng với ID ${id} thành công.`);
+      console.log(`Đã xóa muon tra người dùng với ID ${id} .`);
     } else {
+      console.log(`Đã xóa người dùng với ID ${id} thành công.`);
       console.log(
         `Không tìm thấy bản ghi mượn nào liên quan đến người dùng ID ${id}.`
       );
